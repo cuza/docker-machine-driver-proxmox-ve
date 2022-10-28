@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
 	dockermachinedriverproxmoxve "github.com/lnxbil/docker-machine-driver-proxmox-ve"
@@ -12,7 +13,7 @@ import (
 func TestSuccessfulConnection(t *testing.T) {
 	api := EstablishConnection(t)
 
-	val, err := strconv.ParseFloat(api.Version, 32)
+	val, err := strconv.ParseFloat(strings.Split(api.Version, "-")[0], 32)
 	if err != nil {
 		t.Error("Error occured")
 		t.Error(err)
@@ -31,7 +32,7 @@ func TestWrongPass(t *testing.T) {
 }
 func TestWrongUser(t *testing.T) {
 	_, password, realm, host := GetProxmoxAccess()
-	_, err := dockermachinedriverproxmoxve.GetProxmoxVEConnectionByValues("root", password, realm, host)
+	_, err := dockermachinedriverproxmoxve.GetProxmoxVEConnectionByValues("user-dkdrhrchijjdef", password, realm, host)
 	if err == nil {
 		t.Log(err)
 		t.Error()
@@ -49,7 +50,7 @@ func TestEmptyPass(t *testing.T) {
 
 func TestWrongHost(t *testing.T) {
 	username, password, realm, _ := GetProxmoxAccess()
-	_, err := dockermachinedriverproxmoxve.GetProxmoxVEConnectionByValues(username, password, realm, "127.0.0.1")
+	_, err := dockermachinedriverproxmoxve.GetProxmoxVEConnectionByValues(username, password, realm, "random-fgdkbrgdetkd")
 	if err == nil {
 		t.Log(err)
 		t.Error()
@@ -76,21 +77,6 @@ func TestStorageType(t *testing.T) {
 	}
 
 	err = checkStorageType(t, api, "local", "dir")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = checkStorageType(t, api, "nfs", "nfs")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = checkStorageType(t, api, "zpool", "zfspool")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = checkStorageType(t, api, "lvm", "lvm")
 	if err != nil {
 		t.Fatal(err)
 	}
