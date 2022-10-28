@@ -1,9 +1,17 @@
 # docker machine driver
 cmd/docker-machine-driver-proxmoxve/docker-machine-driver-proxmox*
 
+Test configuration
+testconfig.json
+
 # MacOS stuff
 .DS_Store
 
 # Visual Studio Code stuff
+.vscode/
 .history
 *.code-workspace
+
+JetBrains IDEs
+.fleet/
+.idea/
