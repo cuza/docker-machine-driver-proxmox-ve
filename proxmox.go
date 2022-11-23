@@ -457,17 +457,13 @@ func (p ProxmoxVE) NodesNodeQemuVMIDConfigSetSSHKeys(node string, vmid string, C
 	SSHKeys = url.PathEscape(SSHKeys)
 	SSHKeys = r.Replace(SSHKeys)
 
-	SSHKeys = url.PathEscape(SSHKeys)
-	SSHKeys = r.Replace(SSHKeys)
-
-	PostBody := ""
+	Params := url.Values{}
 	if CIUser != "" {
-		PostBody = fmt.Sprintf("ciuser=%s&sshkeys=%s,", CIUser, SSHKeys)
-	} else {
-		PostBody = fmt.Sprintf("sshkeys=%s,", SSHKeys)
+		Params.Set("ciuser", CIUser)
 	}
+	Params.Set("sshkeys", SSHKeys)
 
-	response, err := p.client.R().SetHeader("Content-Type", "application/x-www-form-urlencoded").SetBody(PostBody).Post(p.getURL(path))
+	response, err := p.client.R().SetHeader("Content-Type", "application/x-www-form-urlencoded").SetBody(Params.Encode()).Post(p.getURL(path))
 
 	if err != nil {
 		return "", err
