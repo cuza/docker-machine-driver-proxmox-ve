@@ -752,7 +752,7 @@ func (d *Driver) Create() error {
 		if d.CiEnabled == "1" {
 			// specially handle setting sshkeys
 			// https://forum.proxmox.com/threads/how-to-use-pvesh-set-vms-sshkeys.52570/
-			taskid, err = d.driver.NodesNodeQemuVMIDConfigSetSSHKeys(d.Node, d.VMID, key)
+			taskid, err = d.driver.NodesNodeQemuVMIDConfigSetSSHKeys(d.Node, d.VMID, d.GuestUsername, key)
 			if err != nil {
 				return err
 			}
@@ -867,7 +867,7 @@ func (d *Driver) Create() error {
 
 		// specially handle setting sshkeys
 		// https://forum.proxmox.com/threads/how-to-use-pvesh-set-vms-sshkeys.52570/
-		taskid, err = d.driver.NodesNodeQemuVMIDConfigSetSSHKeys(d.Node, d.VMID, SSHKeys)
+		taskid, err = d.driver.NodesNodeQemuVMIDConfigSetSSHKeys(d.Node, d.VMID, d.GuestUsername, SSHKeys)
 		if err != nil {
 			return err
 		}

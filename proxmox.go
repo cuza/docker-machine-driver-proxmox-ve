@@ -450,7 +450,7 @@ func (p ProxmoxVE) NodesNodeQemuVMIDConfigPost(node string, vmid string, input *
 // Set config options
 // https://forum.proxmox.com/threads/how-to-use-pvesh-set-vms-sshkeys.52570/
 // cray encoding style *AND* double-encoded
-func (p ProxmoxVE) NodesNodeQemuVMIDConfigSetSSHKeys(node string, vmid string, SSHKeys string) (taskid string, err error) {
+func (p ProxmoxVE) NodesNodeQemuVMIDConfigSetSSHKeys(node string, vmid string, CIUser string, SSHKeys string) (taskid string, err error) {
 	r := strings.NewReplacer("+", "%2B", "=", "%3D", "@", "%40")
 
 	path := fmt.Sprintf("/nodes/%s/qemu/%s/config", node, vmid)
@@ -460,7 +460,14 @@ func (p ProxmoxVE) NodesNodeQemuVMIDConfigSetSSHKeys(node string, vmid string, S
 	SSHKeys = url.PathEscape(SSHKeys)
 	SSHKeys = r.Replace(SSHKeys)
 
-	response, err := p.client.R().SetHeader("Content-Type", "application/x-www-form-urlencoded").SetBody("sshkeys=" + SSHKeys).Post(p.getURL(path))
+	PostBody := ""
+	if CIUser != "" {
+		PostBody = fmt.Sprintf("ciuser=%s&sshkeys=%s,", CIUser, SSHKeys)
+	} else {
+		PostBody = fmt.Sprintf("sshkeys=%s,", SSHKeys)
+	}
+
+	response, err := p.client.R().SetHeader("Content-Type", "application/x-www-form-urlencoded").SetBody(PostBody).Post(p.getURL(path))
 
 	if err != nil {
 		return "", err
