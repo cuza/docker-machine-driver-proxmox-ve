@@ -38,11 +38,13 @@ type Driver struct {
 	ProvisionStrategy string
 
 	// Basic Authentication for Proxmox VE
-	Host     string // Host to connect to
-	Node     string // optional, node to create VM on, host used if omitted but must match internal node name
-	User     string // username
-	Password string // password
-	Realm    string // realm, e.g. pam, pve, etc.
+	Host        string // Host to connect to
+	Node        string // optional, node to create VM on, host used if omitted but must match internal node name
+	User        string // username
+	Password    string // password
+	Realm       string // realm, e.g. pam, pve, etc.
+	TokenID     string // API Token ID
+	TokenSecret string // API Token secret
 
 	// File to load as boot image RancherOS/Boot2Docker
 	ImageFile string // in the format <storagename>:iso/<filename>.iso
@@ -98,18 +100,35 @@ func (d *Driver) debug(v ...interface{}) {
 
 func (d *Driver) connectAPI() error {
 	if d.driver == nil {
-		d.debugf("Create called")
+		d.debugf("Connecting to %s as %s@%s", d.Host, d.User, d.Realm)
 
-		d.debugf("Connecting to %s as %s@%s with password '%s'", d.Host, d.User, d.Realm, d.Password)
-		c, err := GetProxmoxVEConnectionByValues(d.User, d.Password, d.Realm, d.Host)
+		var (
+			c   *ProxmoxVE
+			err error
+		)
+
+		if d.TokenID != "" && d.TokenSecret != "" {
+			// token-based auth
+			c, err = GetProxmoxVEConnectionByToken(&ProxmoxVE{
+				Username:    d.User,
+				Realm:       d.Realm,
+				Host:        d.Host,
+				TokenID:     d.TokenID,
+				TokenSecret: d.TokenSecret,
+			})
+		} else {
+			// ticket-based
+			c, err = GetProxmoxVEConnectionByValues(d.User, d.Password, d.Realm, d.Host)
+		}
+
 		d.driver = c
 		if err != nil {
-			return fmt.Errorf("Could not connect to host '%s' with '%s@%s'", d.Host, d.User, d.Realm)
+			return fmt.Errorf("Could not connect to host '%s' with '%s@%s': %v", d.Host, d.User, d.Realm, err)
 		}
 		if d.restyDebug {
 			c.EnableDebugging()
 		}
-		d.debugf("Connected to PVE version '" + d.driver.Version + "'")
+		d.debugf("Connected to PVE version '%s'", d.driver.Version)
 	}
 	return nil
 }
@@ -157,6 +176,18 @@ func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 			EnvVar: "PROXMOXVE_PROXMOX_POOL",
 			Name:   "proxmoxve-proxmox-pool",
 			Usage:  "pool to attach to",
+			Value:  "",
+		},
+		mcnflag.StringFlag{
+			EnvVar: "PROXMOXVE_API_TOKEN_ID",
+			Name:   "proxmoxve-proxmox-token-id",
+			Usage:  "API Token ID for PVEAPIToken authentication",
+			Value:  "",
+		},
+		mcnflag.StringFlag{
+			EnvVar: "PROXMOXVE_API_TOKEN_SECRET",
+			Name:   "proxmoxve-proxmox-token-secret",
+			Usage:  "API Token secret for PVEAPIToken authentication",
 			Value:  "",
 		},
 		mcnflag.StringFlag{
@@ -365,6 +396,8 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 	d.Password = flags.String("proxmoxve-proxmox-user-password")
 	d.Realm = flags.String("proxmoxve-proxmox-realm")
 	d.Pool = flags.String("proxmoxve-proxmox-pool")
+	d.TokenID = flags.String("proxmoxve-proxmox-token-id")
+	d.TokenSecret = flags.String("proxmoxve-proxmox-token-secret")
 
 	// VM configuration
 	d.DiskSize = flags.String("proxmoxve-vm-storage-size")

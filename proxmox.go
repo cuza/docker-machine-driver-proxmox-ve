@@ -22,11 +22,13 @@ import (
 // ProxmoxVE open api connection representation
 type ProxmoxVE struct {
 	// connection parameters
-	Username string // root
-	password string // must be given
-	Realm    string // pam
-	Host     string
-	Port     int // default 8006
+	Username    string // root
+	password    string // must be given
+	Realm       string // pam
+	TokenID     string
+	TokenSecret string
+	Host        string
+	Port        int // default 8006
 
 	// not so imported internal stuff
 	Node                string // if not present, use first node present
@@ -49,8 +51,31 @@ func GetProxmoxVEConnectionByValues(username string, password string, realm stri
 	})
 }
 
+func GetProxmoxVEConnectionByToken(data *ProxmoxVE) (*ProxmoxVE, error) {
+	data.client = resty.New()
+	data.client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+
+	// set the Authorization header
+	auth := fmt.Sprintf("PVEAPIToken=%s@%s!%s=%s",
+		data.Username, data.Realm, data.TokenID, data.TokenSecret,
+	)
+	data.client.SetHeader("Authorization", auth)
+
+	// tokens do NOT require CSRF – just fetch version
+	ver, err := data.versionGet()
+	if err != nil {
+		return data, err
+	}
+	data.Version = ver.Version
+	return data, nil
+}
+
 // GetProxmoxVEConnection retrievs a connection to a Proxmox VE host
 func GetProxmoxVEConnection(data *ProxmoxVE) (*ProxmoxVE, error) {
+	if data.TokenID != "" && data.TokenSecret != "" {
+		return GetProxmoxVEConnectionByToken(data)
+	}
+
 	if data.Port == 0 {
 		data.Port = 8006
 	}
